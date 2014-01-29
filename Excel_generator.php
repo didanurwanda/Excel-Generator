@@ -7,7 +7,6 @@
  * @link http://didanurwanda.blogspot.com 
  * 
  */
-
 require_once dirname(__FILE__) . '/PHPExcel/PHPExcel.php';
 
 class Excel_generator extends PHPExcel {
@@ -19,7 +18,8 @@ class Excel_generator extends PHPExcel {
     private $column = array();
     private $header = array();
     private $width = array();
-    private $set_bold = TRUE;
+    private $header_bold = TRUE;
+    private $start = 1;
 
     /**
      * Diisi dengan query Anda
@@ -30,10 +30,11 @@ class Excel_generator extends PHPExcel {
      * 
      * @access public
      * @param CI_DB_result $query
-     * @return void
+     * @return Excel_generator
      */
     public function set_query(CI_DB_result $query) {
         $this->query = $query;
+        return $this;
     }
 
     /**
@@ -44,10 +45,11 @@ class Excel_generator extends PHPExcel {
      * 
      * @access public
      * @param array $column
-     * @return void
+     * @return Excel_generator
      */
     public function set_column($column = array()) {
         $this->column = $column;
+        return $this;
     }
 
     /**
@@ -63,45 +65,77 @@ class Excel_generator extends PHPExcel {
      * @access public
      * @param array $header
      * @param bool $set_bold
+     * @return Excel_generator
      */
     public function set_header($header = array(), $set_bold = TRUE) {
         $this->header = $header;
-        $this->set_bold = $set_bold;
+        $this->header_bold = $set_bold;
+        return $this;
     }
-    
+
+    /**
+     * Mengubah lebar kolom
+     * <pre>
+     * $this->excel_generator->set_width(array(25, 30, 15));
+     * </pre>     * 
+     * 
+     * @access public
+     * @param array $width
+     * @return Excel_generator
+     */
     public function set_width($width = array()) {
         $this->width = $width;
+        return $this;
+    }
+
+    /**
+     * Mengubah baris saat memulai membuat daftar
+     * <pre>
+     * $this->excel_generator->start_at(5);
+     * </pre>
+     * 
+     * @access public
+     * @param int $start
+     * @return Excel_generator
+     */
+    public function start_at($start = 1) {
+        $this->start = $start;
+        return $this;
     }
 
     /**
      * Untuk menghasilkan data excel
      * 
      * @access public
-     * @return void
+     * @return Excel_generator
      */
     public function generate() {
-        $start = 1;
+        $start = $this->start;
         if (count($this->header) > 0) {
+            $abj = 1;
             foreach ($this->header as $row) {
-                $this->getActiveSheet()->setCellValue($this->columnName($start) . '1', $row);
-                $this->getActiveSheet()->getStyle($this->columnName($start) . '1')->getFont()->setBold(TRUE);
-                $start++;
+                $this->getActiveSheet()->setCellValue($this->columnName($abj) . $this->start, $row);
+                if ($this->header_bold) {
+                    $this->getActiveSheet()->getStyle($this->columnName($abj) . $this->start)->getFont()->setBold(TRUE);
+                }
+                $abj++;
             }
-            $start = 2;
+            $start = $this->start + 1;
         }
 
         foreach ($this->query->result_array() as $result_db) {
             $index = 1;
             foreach ($this->column as $row) {
-                if(count($this->width) > 0) {
-                    $this->getActiveSheet()->getColumnDimension($this->columnName($index))->setWidth($this->width[$index-1]);
+                if (count($this->width) > 0) {
+                    $this->getActiveSheet()->getColumnDimension($this->columnName($index))->setWidth($this->width[$index - 1]);
                 }
-                
+
                 $this->getActiveSheet()->setCellValue($this->columnName($index) . $start, $result_db[$row]);
                 $index++;
             }
             $start++;
         }
+        return $this;
     }
 
     private function columnName($index) {
